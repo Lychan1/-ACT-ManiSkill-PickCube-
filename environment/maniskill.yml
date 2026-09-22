@@ -1,0 +1,14 @@
+name: maniskill-act311
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - torch==2.10.0
+      - torchvision==0.25.0
+      - diffusers==0.35.2
+      - tensorboard==2.21.0
+      - wandb==0.24.2
+      - -e .
+      - -e ./examples/baselines/act

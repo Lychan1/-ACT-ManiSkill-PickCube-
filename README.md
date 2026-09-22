@@ -1,94 +1,140 @@
-# ManiSkill 3
+# 基于 ACT 的 ManiSkill PickCube 策略训练与评估
 
+> **English summary:** This portfolio project trains a state-based Action
+> Chunking with Transformers (ACT) policy on 100 ManiSkill PickCube
+> demonstrations, evaluates it in closed loop, and adds a reproducible
+> checkpoint-to-video evaluation workflow. The best periodic evaluation reached
+> 75% `success_once` and 68% `success_at_end` over 100 episodes.
 
-![teaser](figures/teaser.jpg)
-<p style="text-align: center; font-size: 0.8rem; color: #999;margin-top: -1rem;">Sample of environments/robots rendered with ray-tracing. Scene datasets sourced from AI2THOR and ReplicaCAD</p>
+这是一个基于 [ManiSkill](https://github.com/haosulab/ManiSkill) 的项目型 fork，目标是完整走通：
 
-[![Downloads](https://static.pepy.tech/badge/mani_skill)](https://pepy.tech/project/mani_skill)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mani-skill/ManiSkill/blob/main/examples/tutorials/1_quickstart.ipynb)
-[![PyPI version](https://badge.fury.io/py/mani-skill.svg)](https://badge.fury.io/py/mani-skill)
-[![Docs status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://maniskill.readthedocs.io/en/latest/)
-[![Discord](https://img.shields.io/discord/996566046414753822?logo=discord)](https://discord.gg/x8yUZe5AdN)
+```text
+官方示范 -> 状态轨迹回放 -> ACT 训练 -> 周期闭环评估
+                                      -> checkpoint 独立评估 -> 视频案例
+```
 
-ManiSkill is an open-source framework for robot simulation and training powered by [SAPIEN](https://sapien.ucsd.edu/), with a strong focus on manipulation skills. Among its features include:
-- GPU parallelized visual data collection system. On the high end you can collect RGBD + Segmentation data at 30,000+ FPS on a 4090 GPU
-- GPU parallelized simulation, enabling high throughput state-based synthetic data collection in simulation
-- GPU parallelized heterogeneous simulation, where every parallel environment has a completely different scene/set of objects
-- Example tasks cover a wide range of different robot embodiments (humanoids, mobile manipulators, single-arm robots) as well as a wide range of different tasks (table-top, drawing/cleaning, dexterous manipulation)
-- Flexible and simple task building API that abstracts away much of the complex GPU memory management code via an object oriented design
-- Real2sim environments for scalably evaluating real-world policies 100x faster via GPU simulation.
-- Sim2real examples for deploying policies trained in simulation to the real world
-- Many tuned robot learning baselines in Reinforcement Learning (e.g. PPO, SAC, [TD-MPC2](https://github.com/nicklashansen/tdmpc2)), Imitation Learning (e.g. Behavior Cloning, [Diffusion Policy](https://github.com/real-stanford/diffusion_policy)), and large Vision Language Action (VLA) models (e.g. [Octo](https://github.com/octo-models/octo), [RDT-1B](https://github.com/thu-ml/RoboticsDiffusionTransformer), [RT-x](https://robotics-transformer-x.github.io/))
+仓库保留 ManiSkill 上游源码、许可证和引用信息。项目新增内容集中在 ACT 的 Gymnasium 兼容性、checkpoint 评估、复现脚本、实验结果和学习路线。
 
-For more details we encourage you to take a look at our [paper](https://arxiv.org/abs/2410.00425), published at [RSS 2025](https://roboticsconference.org/).
+## 当前结果
 
-Please refer to our [documentation](https://maniskill.readthedocs.io/en/latest/user_guide) to learn more information from tutorials on building tasks to sim2real to running baselines. If you find any bugs or have any feature requests please post them to our [GitHub issues](https://github.com/mani-skill/ManiSkill/issues/) or discuss about them on [GitHub discussions](https://github.com/mani-skill/ManiSkill/discussions/). We also have a [Discord Server](https://discord.gg/x8yUZe5AdN) through which we make announcements and discuss about ManiSkill.
+核心实验使用 `PickCube-v1`、`pd_ee_delta_pos`、100 条 motion-planning 示范和 `seed=1`，训练 30,000 次迭代。TensorBoard 最后一条训练标量位于 29,900 次迭代；周期评估每次包含 100 个 episode。
 
-Users looking for the original ManiSkill2 can find the commit for that codebase at the [v0.5.3 tag](https://github.com/mani-skill/ManiSkill/tree/v0.5.3)
+| 评估口径 | 迭代/checkpoint | Episodes | `success_once` | `success_at_end` | 平均回报 |
+|---|---:|---:|---:|---:|---:|
+| 最佳周期评估 | 10,000 | 100 | 75% | 68% | 20.79 |
+| 最后周期评估 | 25,000 | 100 | 68% | 60% | 16.60 |
+| 已有视频批次 | `best_eval_success_at_end.pt` | 50 | 100% | 100% | 未记录 |
+| Fresh CPU 验证 | `best_eval_success_at_end.pt` | 10 | 70% | 60% | 20.10 |
 
-## Installation
-Installation of ManiSkill is extremely simple, you only need to run a few pip installs and setup Vulkan for rendering.
+已有视频批次的 50 个末帧叠加指标均显示成功，但当时没有保留控制台设备信息。仓库整理时重新执行的 CPU 评估结果较低，表明闭环轨迹可能对推理设备造成的数值差异敏感。这两批结果均与训练期间的 100-episode 周期评估分开记录。
+
+![ACT training and evaluation curves](results/curves/training_curves.png)
+
+下图是独立 checkpoint 评估的 50 个回合末帧，画面叠加指标均显示成功：
+
+![Final frames from fifty checkpoint evaluation episodes](assets/images/checkpoint-evaluation-final-frames.jpg)
+
+代表视频：[0](assets/videos/best_eval_success_at_end/0.mp4) · [1](assets/videos/best_eval_success_at_end/1.mp4) · [2](assets/videos/best_eval_success_at_end/2.mp4) · [3](assets/videos/best_eval_success_at_end/3.mp4) · [4](assets/videos/best_eval_success_at_end/4.mp4) · [完整目录](assets/videos/best_eval_success_at_end/)
+
+完整标量数据见 [`results/metrics.csv`](results/metrics.csv)，实验分析见 [`report/experiment_report.md`](report/experiment_report.md)。
+
+## 快速复现
+
+推荐 Ubuntu、NVIDIA GPU、Conda/Miniconda 和至少 50 GB 可用磁盘。当前验证环境为 Python 3.11.16、ManiSkill 3.0.1、Gymnasium 1.3.0 和 PyTorch 2.10.0+cu128。
+
+所有命令都从仓库根目录执行。
+
+### 1. 创建 ManiSkill ACT 环境
 
 ```bash
-# install the package
-pip install --upgrade mani_skill
-# install a version of torch that is compatible with your system
-pip install torch
+conda env create -f environment/maniskill.yml
+conda activate maniskill-act311
 ```
 
-Finally you also need to set up Vulkan with [instructions here](https://maniskill.readthedocs.io/en/latest/user_guide/getting_started/installation.html#vulkan)
+`environment/maniskill.yml` 包含本仓库和 ACT baseline 的 editable install，因此创建环境时必须位于仓库根目录。若本机 CUDA 与示例环境不同，应先按照 [PyTorch 官方说明](https://pytorch.org/get-started/locally/)选择匹配的 wheel。
 
-For more details about installation (e.g. from source, or doing troubleshooting) see [the documentation](https://maniskill.readthedocs.io/en/latest/user_guide/getting_started/installation.html
-)
+### 2. 下载并回放示范
 
-## Getting Started
-
-To get started, check out the quick start documentation: https://maniskill.readthedocs.io/en/latest/user_guide/getting_started/quickstart.html
-
-We also have a quick start [colab notebook](https://colab.research.google.com/github/mani-skill/ManiSkill/blob/main/examples/tutorials/1_quickstart.ipynb) that lets you try out GPU parallelized simulation without needing your own hardware. Everything is runnable on Colab free tier.
-
-For a full list of example scripts you can run, see [the docs](https://maniskill.readthedocs.io/en/latest/user_guide/demos/index.html).
-
-## System Support
-
-We currently best support Linux based systems. There is limited support for windows and MacOS at the moment. We are working on trying to support more features on other systems but this may take some time. Most constraints stem from what the [SAPIEN](https://github.com/haosulab/SAPIEN/) package is capable of supporting.
-
-| System / GPU         | CPU Sim | GPU Sim | Rendering |
-| -------------------- | ------- | ------- | --------- |
-| Linux / NVIDIA GPU   | ✅      | ✅      | ✅        |
-| Windows / NVIDIA GPU | ✅      | ❌      | ✅        |
-| Windows / AMD GPU    | ✅      | ❌      | ✅        |
-| WSL / Anything       | ✅      | ❌      | ❌        |
-| MacOS / Anything     | ✅      | ❌      | ✅        |
-
-## Citation
-
-
-If you use ManiSkill3 (versions `mani_skill>=3.0.0`) in your work please cite our [ManiSkill3 paper](https://arxiv.org/abs/2410.00425) as so:
-
-```
-@article{taomaniskill3,
-  title={ManiSkill3: GPU Parallelized Robotics Simulation and Rendering for Generalizable Embodied AI},
-  author={Stone Tao and Fanbo Xiang and Arth Shukla and Yuzhe Qin and Xander Hinrichsen and Xiaodi Yuan and Chen Bao and Xinsong Lin and Yulin Liu and Tse-kai Chan and Yuan Gao and Xuanlin Li and Tongzhou Mu and Nan Xiao and Arnav Gurha and Viswesh Nagaswamy Rajesh and Yong Woo Choi and Yen-Ru Chen and Zhiao Huang and Roberto Calandra and Rui Chen and Shan Luo and Hao Su},
-  journal = {Robotics: Science and Systems},
-  year={2025},
-} 
+```bash
+scripts/act_pickcube/download_demo.sh
+scripts/act_pickcube/replay_state.sh
 ```
 
-If you use ManiSkill2 (version `mani_skill==0.5.3` or lower) in your work please cite the ManiSkill2 paper as so:
-```
-@inproceedings{gu2023maniskill2,
-  title={ManiSkill2: A Unified Benchmark for Generalizable Manipulation Skills},
-  author={Gu, Jiayuan and Xiang, Fanbo and Li, Xuanlin and Ling, Zhan and Liu, Xiqiang and Mu, Tongzhou and Tang, Yihe and Tao, Stone and Wei, Xinyue and Yao, Yunchao and Yuan, Xiaodi and Xie, Pengwei and Huang, Zhiao and Chen, Rui and Su, Hao},
-  booktitle={International Conference on Learning Representations},
-  year={2023}
-}
+默认训练数据路径为：
+
+```text
+~/.maniskill/demos/PickCube-v1/motionplanning/
+trajectory.state.pd_ee_delta_pos.physx_cpu.h5
 ```
 
-Note that some other assets, algorithms, etc. in ManiSkill are from other sources/research. We try our best to include the correct citation bibtex where possible when introducing the different components provided by ManiSkill.
+### 3. 冒烟测试与正式训练
 
-## License
+```bash
+scripts/act_pickcube/train_smoke.sh
+scripts/act_pickcube/train_state.sh
+```
 
-All rigid body environments in ManiSkill are licensed under fully permissive licenses (e.g., Apache-2.0).
+脚本支持用环境变量覆盖配置，例如：
 
-The assets are licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode).
+```bash
+SEED=2 NUM_DEMOS=50 TOTAL_ITERS=30000 \
+  scripts/act_pickcube/train_state.sh
+```
+
+主要可覆盖项包括 `DEMO_PATH`、`NUM_DEMOS`、`SEED`、`TOTAL_ITERS`、`BATCH_SIZE`、`NUM_EVAL_EPISODES` 和 `NUM_EVAL_ENVS`。
+
+### 4. 从 checkpoint 独立评估并生成视频
+
+```bash
+scripts/act_pickcube/evaluate_checkpoint.sh \
+  examples/baselines/act/runs/act-PickCube-v1-state-100demos-seed1/checkpoints/best_eval_success_at_end.pt
+```
+
+也可以直接使用 Python 入口：
+
+```bash
+cd examples/baselines/act
+python evaluate_checkpoint.py \
+  --checkpoint runs/act-PickCube-v1-state-100demos-seed1/checkpoints/best_eval_success_at_end.pt \
+  --num-eval-episodes 50 \
+  --num-eval-envs 1
+```
+
+默认视频目录为 `runs/<experiment>/videos/<checkpoint-name>/`。`num_queries`、Transformer 层数、隐藏维度等模型结构参数必须与生成 checkpoint 时的训练配置一致。
+
+## 仓库结构
+
+```text
+environment/                 独立的 ManiSkill 与 LeRobot 环境
+scripts/act_pickcube/        下载、回放、训练和 checkpoint 评估入口
+examples/baselines/act/      ManiSkill ACT baseline 与项目评估代码
+results/                     可追溯的标量摘要和曲线
+assets/                      精选评估视频与末帧总览
+report/                      当前实验报告
+docs/project-roadmap.md      后续项目路线
+docs/experiment-protocol.md  对照实验与评估规范
+```
+
+## 个人实现内容
+
+- 修复 Gymnasium 新版 vector environment 在 CPU 评估中的 autoreset 行为，使用 `SAME_STEP` 保留 `final_info`。
+- 让评估代码同时支持 NumPy 与 Tensor episode metrics，并过滤 Gymnasium 自动生成的 `_metric` 掩码字段。
+- 新增 EMA checkpoint 加载与独立闭环评估入口，支持 CPU/GPU、随机种子、并行环境和视频目录配置。
+- 为以上行为补充 7 个回归测试。
+- 提供从数据下载到训练、评估、结果展示的可复现项目结构。
+
+## 局限性
+
+- 当前定量结果只有一个随机种子，不能据此得出稳定的均值和标准差。
+- 已有 50/50 视频批次没有保留设备信息；fresh CPU 复查只有 70%/60%，需要在固定设备上重复验证。
+- 精选的 50 回合视频批次没有失败案例；fresh CPU 复查观察到失败，但临时验证视频不作为精选媒体提交。
+- 当前策略使用环境 state，而不是 RGB 图像，尚未验证视觉泛化与 sim-to-real。
+- checkpoint 和原始数据不进入 Git。需要先运行训练脚本，才能复现 checkpoint 评估。
+
+## 后续路线
+
+下一步优先完成 `seed=0/1/2` 的 100-episode 对照评估，再升级到单摄像头 RGB 输入和视觉域随机化。实体机械臂与语言条件控制保留为后续阶段，详见 [`docs/project-roadmap.md`](docs/project-roadmap.md)。
+
+## 上游项目、引用与许可证
+
+本仓库基于 [haosulab/ManiSkill](https://github.com/haosulab/ManiSkill)，ACT baseline 改编自 [tonyzhaozh/act](https://github.com/tonyzhaozh/act)。使用本项目时请同时参考仓库中的 [`CITATION.cff`](CITATION.cff)、[`CITATION_MS2.cff`](CITATION_MS2.cff)、[`LICENSE`](LICENSE) 和 [`LICENSE-3RD-PARTY`](LICENSE-3RD-PARTY)。

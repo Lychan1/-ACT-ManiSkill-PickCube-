@@ -35,6 +35,28 @@ python train.py --env-id PickCube-v1 \
   --track # track training on wandb
 ```
 
+## Evaluating a checkpoint and recording videos
+
+`evaluate_checkpoint.py` loads the EMA policy stored in a state-based ACT
+checkpoint, runs closed-loop evaluation, prints aggregate metrics, and records
+MP4 videos:
+
+```bash
+python evaluate_checkpoint.py \
+  --checkpoint runs/act-PickCube-v1-state-100demos-seed1/checkpoints/best_eval_success_at_end.pt \
+  --num-eval-episodes 50 \
+  --num-eval-envs 1
+```
+
+Videos default to
+`runs/<experiment>/videos/<checkpoint-name>/`. The model architecture flags,
+including `--num-queries`, `--enc-layers`, `--dec-layers`, and
+`--hidden-dim`, must match the values used to create the checkpoint.
+
+Recent Gymnasium releases return NumPy episode metrics and companion mask keys
+from CPU vector environments. This fork uses same-step autoreset, accepts both
+NumPy and Tensor metrics, and ignores mask keys prefixed with `_`.
+
 ## Citation
 
 If you use this baseline please cite the following
