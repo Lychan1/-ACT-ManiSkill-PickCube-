@@ -56,9 +56,43 @@ The model architecture flags,
 including `--num-queries`, `--enc-layers`, `--dec-layers`, and
 `--hidden-dim`, must match the values used to create the checkpoint.
 
+For an RGB-only checkpoint trained with `train_rgbd.py`, use the RGB-aware
+evaluator and explicitly disable depth to match the training observation mode:
+
+```bash
+python evaluate_rgb_checkpoint.py \
+  --checkpoint runs/act-PickCube-v1-rgb-100demos-seed1/checkpoints/best_eval_success_at_end.pt \
+  --no-include-depth \
+  --num-eval-episodes 100 \
+  --num-eval-envs 1 \
+  --seed 0
+```
+
+Run the command with seeds 0, 1, and 2. Each seed writes to its own video and
+metrics directory, so the three evaluations do not overwrite one another.
+
 Recent Gymnasium releases return NumPy episode metrics and companion mask keys
 from CPU vector environments. This fork uses same-step autoreset, accepts both
 NumPy and Tensor metrics, and ignores mask keys prefixed with `_`.
+
+## Reproducible project wrappers
+
+From the repository root, the completed RGB workflow is available through:
+
+```bash
+scripts/act_pickcube/replay_rgb.sh
+scripts/act_pickcube/train_rgb.sh
+SEED=0 scripts/act_pickcube/evaluate_rgb_checkpoint.sh
+```
+
+The RGB wrapper defaults match the documented experiment: 100 demos, training
+seed 1, batch size 4, 30,001 total iterations, evaluation every 5,000 steps,
+and 100 evaluation episodes. State wrappers remain available as
+`replay_state.sh`, `train_state.sh`, and `evaluate_checkpoint.sh`.
+
+The repository regression suite currently contains 15 ACT baseline tests,
+including RGB policy configuration, checkpoint loading, wrapper defaults,
+video paths, Gymnasium metrics, and CLI execution.
 
 ## Citation
 

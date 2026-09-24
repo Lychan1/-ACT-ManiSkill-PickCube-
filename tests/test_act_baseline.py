@@ -46,6 +46,13 @@ class _Agent:
         return torch.zeros((obs.shape[0], 1, 1))
 
 
+class _RGBModel(torch.nn.Module):
+    def forward(self, obs, action_seq=None):
+        batch_size = obs["rgb"].shape[0]
+        actions = torch.zeros((batch_size, 1, 1))
+        return actions, (None, None)
+
+
 class _NumpyMetricEvalEnv:
     single_observation_space = gym.spaces.Box(
         -1.0, 1.0, (2,), dtype=np.float32
@@ -257,6 +264,70 @@ class TestActBaseline(TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--checkpoint", result.stdout)
 
+    def test_rgb_checkpoint_evaluation_cli_is_executable(self):
+        script = (
+            Path(__file__).parents[1]
+            / "examples"
+            / "baselines"
+            / "act"
+            / "evaluate_rgb_checkpoint.py"
+        )
+
+        result = subprocess.run(
+            [sys.executable, str(script), "--help"],
+            cwd=script.parent,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--checkpoint", result.stdout)
+        self.assertIn("--no-include-depth", result.stdout)
+
+    def test_rgb_checkpoint_evaluation_uses_rgb_observations(self):
+        act_dir = (
+            Path(__file__).parents[1]
+            / "examples"
+            / "baselines"
+            / "act"
+        )
+        sys.path.insert(0, str(act_dir))
+        try:
+            evaluator = importlib.import_module("evaluate_rgb_checkpoint")
+            args = evaluator.Args(checkpoint=Path("checkpoint.pt"))
+            args.include_depth = False
+            env_kwargs = evaluator.build_env_kwargs(args)
+        finally:
+            sys.path.remove(str(act_dir))
+
+        self.assertEqual(env_kwargs["obs_mode"], "rgb")
+        self.assertEqual(env_kwargs["control_mode"], "pd_ee_delta_pos")
+        self.assertEqual(env_kwargs["max_episode_steps"], 100)
+
+    def test_rgb_agent_inference_does_not_require_training_cli_globals(self):
+        act_dir = (
+            Path(__file__).parents[1]
+            / "examples"
+            / "baselines"
+            / "act"
+        )
+        sys.path.insert(0, str(act_dir))
+        try:
+            train_rgbd = importlib.import_module("train_rgbd")
+            train_rgbd.__dict__.pop("args", None)
+            agent = train_rgbd.Agent.__new__(train_rgbd.Agent)
+            torch.nn.Module.__init__(agent)
+            agent.include_depth = False
+            agent.normalize = torch.nn.Identity()
+            agent.model = _RGBModel()
+            action = agent.get_action(
+                {"rgb": torch.zeros((1, 1, 3, 8, 8), dtype=torch.uint8)}
+            )
+        finally:
+            sys.path.remove(str(act_dir))
+
+        self.assertEqual(action.shape, (1, 1, 1))
+
     def test_checkpoint_wrapper_resolves_repo_relative_checkpoint(self):
         repo_root = Path(__file__).parents[1]
         script = repo_root / "scripts" / "act_pickcube" / "evaluate_checkpoint.sh"
@@ -287,3 +358,101 @@ class TestActBaseline(TestCase):
         self.assertEqual(
             arguments[checkpoint_index + 1], str(repo_root / checkpoint)
         )
+
+    def test_rgb_checkpoint_wrapper_resolves_repo_relative_checkpoint(self):
+        repo_root = Path(__file__).parents[1]
+        script = (
+            repo_root / "scripts" / "act_pickcube" / "evaluate_rgb_checkpoint.sh"
+        )
+        checkpoint = Path("examples/baselines/act/README.md")
+
+        with TemporaryDirectory() as tmp_dir:
+            bin_dir = Path(tmp_dir) / "bin"
+            bin_dir.mkdir()
+            fake_python = bin_dir / "python"
+            fake_python.write_text(
+                '#!/usr/bin/env bash\nprintf "%s\\n" "$@"\n', encoding="utf-8"
+            )
+            fake_python.chmod(0o755)
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+
+            result = subprocess.run(
+                ["bash", str(script), str(checkpoint)],
+                cwd=repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        arguments = result.stdout.splitlines()
+        self.assertEqual(arguments[0], "evaluate_rgb_checkpoint.py")
+        self.assertIn("--no-include-depth", arguments)
+        checkpoint_index = arguments.index("--checkpoint")
+        self.assertEqual(
+            arguments[checkpoint_index + 1], str(repo_root / checkpoint)
+        )
+
+    def test_rgb_training_wrapper_uses_rgb_only_experiment_defaults(self):
+        repo_root = Path(__file__).parents[1]
+        script = repo_root / "scripts" / "act_pickcube" / "train_rgb.sh"
+
+        with TemporaryDirectory() as tmp_dir:
+            bin_dir = Path(tmp_dir) / "bin"
+            bin_dir.mkdir()
+            fake_python = bin_dir / "python"
+            fake_python.write_text(
+                '#!/usr/bin/env bash\nprintf "%s\\n" "$@"\n', encoding="utf-8"
+            )
+            fake_python.chmod(0o755)
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+
+            result = subprocess.run(
+                ["bash", str(script)],
+                cwd=repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        arguments = result.stdout.splitlines()
+        self.assertEqual(arguments[0], "train_rgbd.py")
+        self.assertIn("--no-include-depth", arguments)
+        self.assertEqual(arguments[arguments.index("--batch-size") + 1], "4")
+        self.assertEqual(
+            arguments[arguments.index("--exp-name") + 1],
+            "act-PickCube-v1-rgb-100demos-seed1",
+        )
+
+    def test_rgb_replay_wrapper_requests_rgb_observations(self):
+        repo_root = Path(__file__).parents[1]
+        script = repo_root / "scripts" / "act_pickcube" / "replay_rgb.sh"
+
+        with TemporaryDirectory() as tmp_dir:
+            bin_dir = Path(tmp_dir) / "bin"
+            bin_dir.mkdir()
+            fake_python = bin_dir / "python"
+            fake_python.write_text(
+                '#!/usr/bin/env bash\nprintf "%s\\n" "$@"\n', encoding="utf-8"
+            )
+            fake_python.chmod(0o755)
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+
+            result = subprocess.run(
+                ["bash", str(script)],
+                cwd=repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        arguments = result.stdout.splitlines()
+        self.assertEqual(
+            arguments[:2], ["-m", "mani_skill.trajectory.replay_trajectory"]
+        )
+        self.assertEqual(arguments[arguments.index("-o") + 1], "rgb")

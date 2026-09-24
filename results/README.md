@@ -1,30 +1,31 @@
 # Experiment results
 
-This directory contains small, version-controlled summaries derived from local
-training artifacts. Raw TensorBoard events, checkpoints, and full run folders
-remain under `examples/baselines/act/runs/` and are intentionally ignored by
+This directory contains version-controlled summaries derived from local ACT
+training artifacts. Raw TensorBoard events, checkpoints, datasets, and full
+video folders remain under `examples/baselines/act/runs/` and are ignored by
 Git.
 
 ## Files
 
-- `metrics.csv`: long-form scalar data for the 30,000-iteration state-based
-  ACT run and three 100-episode evaluations of the best checkpoint.
-- `curves/training_curves.png`: loss and closed-loop evaluation curves derived
-  from the same TensorBoard event file.
-- `curves/checkpoint_seed_comparison.png`: checkpoint results for evaluation
-  seeds 0, 1, and 2, plus mean and sample standard deviation across seeds.
+- `metrics.csv`: long-form state and RGB training/evaluation metrics.
+- `curves/rgb_training_curves.png`: RGB closed-loop evaluation curves.
+- `curves/state_rgb_checkpoint_comparison.png`: comparison of the completed
+  state and RGB checkpoint evaluations.
+- `curves/training_curves.png`: state training curves.
+- `curves/checkpoint_seed_comparison.png`: state checkpoint evaluation seeds.
 
-The source run directory is `act-PickCube-v1-state-100demos`; its training
-configuration used seed 1. The TensorBoard writer logged training through
-iteration 29,900 and periodic evaluation at iterations 0, 5,000, 10,000,
-15,000, 20,000, and 25,000.
+The primary RGB run is `act-PickCube-v1-rgb-100demos-seed1`. TensorBoard
+contains 301 loss points through step 30,000 and seven 100-episode periodic
+evaluations. Its best checkpoint was evaluated for 100 episodes on environment
+seeds 0, 1, and 2.
 
-The `checkpoint_video_eval` rows come from the `metrics.json` written for
-evaluation seeds 0, 1, and 2. Each seed contains 100 episodes. These three
-runs evaluate the same checkpoint trained with seed 1; they measure variation
-over evaluation initial conditions, not independent training runs.
+The state baseline is `act-PickCube-v1-state-100demos-seed1`. Its TensorBoard
+writer logged 300 loss points through iteration 29,900 and six periodic
+evaluations through iteration 25,000. The same state best checkpoint was also
+evaluated on environment seeds 0, 1, and 2.
 
-`training_periodic_eval` and `checkpoint_video_eval` remain separate because
-they were produced by different evaluation executions. The six videos under
-`assets/videos/` are curated success/failure examples and are not a source for
-the rates in `metrics.csv`.
+`training_periodic_eval` and `checkpoint_video_eval` are intentionally kept
+separate. Evaluation seeds describe repeated environments for one trained
+checkpoint, not independent model-training seeds. The state/RGB comparison is
+also not a strict modality ablation because the completed configurations differ
+in model and training details.

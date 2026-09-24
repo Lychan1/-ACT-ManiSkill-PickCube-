@@ -10,7 +10,7 @@
 | Checkpoint 独立评估 | 已完成 | EMA policy 加载、3 个评估 seed、每个 seed 100 回合 |
 | 仓库复现与实验报告 | 已完成 | 环境、脚本、指标、曲线、报告和测试 |
 | LeRobot 公开数据 ACT | 计划中 | 数据字段检查、1,000-step smoke test、训练记录 |
-| PickCube RGB ACT | 计划中 | 单摄像头 RGB 数据、训练曲线、闭环成功率 |
+| PickCube RGB ACT | 已完成 | RGB 数据、30,000 iterations、3 个评估 seed × 100 回合 |
 | 多 seed 与数据量对照 | 进行中 | 评估 seed 对照已完成；独立训练 seed 与 10/50/100 demos 待完成 |
 | 视觉域随机化 | 计划中 | 未见颜色、位置、纹理和光照上的泛化评估 |
 | 实体机械臂迁移 | 计划中 | 真实示范、至少 30 次测试、安全与延迟记录 |
@@ -44,16 +44,16 @@ PickCube motion-planning demos
 
 训练目前只有 `seed=1`。同一个 best checkpoint 已完成评估 seed 0、1、2 各 100 回合的对照；下一步应保持其余参数不变，补齐独立训练 seed 0 和 seed 2。
 
-## 第三阶段：RGB 视觉输入
+## 第三阶段：RGB 视觉输入（已完成）
 
-使用 ManiSkill 轨迹回放生成 RGB 观测，先从单摄像头、224x224 或 256x256、较小 batch 开始。遇到显存不足时依次降低 batch、分辨率和并行环境数，不同时改变多个变量。
+已使用 ManiSkill 轨迹回放生成 RGB 观测，并完成 100 demos、训练 seed=1、30,000 次迭代的 RGB ACT。Best checkpoint 已在环境 seed 0、1、2 上各评估 100 个 episode。当前跨评估 seed 的 `success_once` 为 89.33% ± 1.53 pp，`success_at_end` 为 86.33% ± 2.52 pp。
 
 验收要求：
 
-- 明确摄像头名称、图像形状和状态输入范围。
-- 至少完成一次 1,000-iteration 冒烟测试。
-- 使用不少于 50 个 episode 做闭环评估。
-- 与 state policy 比较训练成本、成功率和失败模式。
+- 已生成 RGB 轨迹并固定为不含 depth 的训练配置。
+- 已完成正式训练、周期闭环评估和 checkpoint 视频评估。
+- 已保存训练曲线、三个评估 seed 的 JSON 指标及成功/失败案例。
+- 已与 state policy 做结果对照；因模型与训练配置不同，当前不视为严格模态消融。
 
 ## 第四阶段：系统对照实验
 

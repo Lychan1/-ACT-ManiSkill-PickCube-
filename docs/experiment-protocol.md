@@ -8,10 +8,10 @@
 
 - 环境：`PickCube-v1`
 - 控制模式：`pd_ee_delta_pos`
-- 观测模式：state baseline 使用 `state`
+- 观测模式：state baseline 使用 `state`；RGB baseline 使用 RGB 图像且不含 depth
 - 仿真后端：`physx_cpu`
 - 最大 episode 长度：100
-- ACT 默认结构：2 层 encoder、4 层 decoder、hidden dim 256、30 queries
+- ACT 共同结构项：2 层 encoder、4 层 decoder、hidden dim 256、30 queries；heads、backbone 和 batch size 必须逐实验记录
 - 正式周期评估：100 episodes
 
 若修改任一固定项，必须创建新的实验名并在结果表中单独成组。
@@ -36,7 +36,7 @@ act-PickCube-v1-state-100demos-seed1
 | 示范数量 | 10、50、100 |
 | 输入模态 | state、RGB |
 
-先完成三个随机种子的 state/100 demos 基线，再扩展其他变量。不要在同一次对照中同时改变示范数量和模型结构。
+当前 state 与 RGB 各完成一个训练 seed，并分别完成三个环境评估 seed。下一步应补齐独立训练 seed。严格模态消融不得同时改变 batch size、heads、backbone 或训练预算；当前已完成的 state/RGB 结果只能标记为配置对照。
 
 ## 每次运行必须记录
 

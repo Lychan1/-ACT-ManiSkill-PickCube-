@@ -348,6 +348,7 @@ class Agent(nn.Module):
         self.state_dim = env.single_observation_space['state'].shape[0]
         self.act_dim = env.single_action_space.shape[0]
         self.kl_weight = args.kl_weight
+        self.include_depth = args.include_depth
         self.normalize = T.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
@@ -378,7 +379,7 @@ class Agent(nn.Module):
         obs['rgb'] = self.normalize(obs['rgb'])
 
         # depth data
-        if args.include_depth:
+        if self.include_depth:
             obs['depth'] = obs['depth'].float()
 
         # forward pass
@@ -402,7 +403,7 @@ class Agent(nn.Module):
         obs['rgb'] = self.normalize(obs['rgb'])
 
         # depth data
-        if args.include_depth:
+        if self.include_depth:
             obs['depth'] = obs['depth'].float()
 
         # forward pass
