@@ -1,4 +1,5 @@
 import importlib
+import json
 import os
 import subprocess
 import sys
@@ -79,6 +80,15 @@ class _MaskedNumpyMetricEvalEnv(_NumpyMetricEvalEnv):
         return obs, reward, terminated, truncated, info
 
 
+class _SeedTrackingEvalEnv(_NumpyMetricEvalEnv):
+    def __init__(self):
+        self.reset_seed = None
+
+    def reset(self, *, seed=None):
+        self.reset_seed = seed
+        return super().reset()
+
+
 class TestActBaseline(TestCase):
     def test_cpu_eval_env_returns_final_info_on_truncation(self):
         with patch.object(
@@ -141,6 +151,24 @@ class TestActBaseline(TestCase):
 
         self.assertNotIn("_success_at_end", metrics)
 
+    def test_evaluate_seeds_initial_environment_reset(self):
+        eval_kwargs = {
+            "stats": None,
+            "num_queries": 1,
+            "temporal_agg": False,
+            "max_timesteps": 1,
+            "device": torch.device("cpu"),
+            "sim_backend": "physx_cpu",
+        }
+        env = _SeedTrackingEvalEnv()
+
+        try:
+            evaluate(1, _Agent(), env, eval_kwargs, seed=2)
+        except TypeError as exc:
+            self.fail(f"evaluate does not accept an environment seed: {exc}")
+
+        self.assertEqual(env.reset_seed, 2)
+
     def test_checkpoint_evaluation_defaults_to_run_video_directory(self):
         try:
             checkpoint = importlib.import_module(
@@ -179,6 +207,36 @@ class TestActBaseline(TestCase):
 
         for value in agent.state_dict().values():
             self.assertTrue(torch.equal(value, torch.ones_like(value)))
+
+    def test_checkpoint_evaluation_saves_metrics_json(self):
+        checkpoint = importlib.import_module(
+            "examples.baselines.act.act.checkpoint"
+        )
+        metrics = {
+            "success_once": np.array([[True], [False]]),
+            "success_at_end": np.array([[False], [False]]),
+        }
+
+        with TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir) / "metrics.json"
+            try:
+                checkpoint.save_metrics(
+                    path,
+                    metrics,
+                    checkpoint_path=Path("best.pt"),
+                    seed=2,
+                )
+            except AttributeError as exc:
+                self.fail(f"metrics persistence is missing: {exc}")
+            payload = json.loads(path.read_text(encoding="utf-8"))
+
+        self.assertEqual(payload["checkpoint"], "best.pt")
+        self.assertEqual(payload["seed"], 2)
+        self.assertEqual(payload["num_eval_episodes"], 2)
+        self.assertEqual(
+            payload["metrics"]["success_once"],
+            {"mean": 0.5, "samples": 2},
+        )
 
     def test_checkpoint_evaluation_cli_is_executable(self):
         script = (

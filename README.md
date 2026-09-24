@@ -3,8 +3,9 @@
 > **English summary:** This portfolio project trains a state-based Action
 > Chunking with Transformers (ACT) policy on 100 ManiSkill PickCube
 > demonstrations, evaluates it in closed loop, and adds a reproducible
-> checkpoint-to-video evaluation workflow. The best periodic evaluation reached
-> 75% `success_once` and 68% `success_at_end` over 100 episodes.
+> checkpoint-to-video evaluation workflow. Across three 100-episode evaluation
+> seeds, the best checkpoint reached 75.33% ± 3.06 pp `success_once` and
+> 68.00% ± 3.61 pp `success_at_end` (mean ± sample SD).
 
 这是一个基于 [ManiSkill](https://github.com/haosulab/ManiSkill) 的项目型 fork，目标是完整走通：
 
@@ -17,24 +18,33 @@
 
 ## 当前结果
 
-核心实验使用 `PickCube-v1`、`pd_ee_delta_pos`、100 条 motion-planning 示范和 `seed=1`，训练 30,000 次迭代。TensorBoard 最后一条训练标量位于 29,900 次迭代；周期评估每次包含 100 个 episode。
+核心实验使用 `PickCube-v1`、`pd_ee_delta_pos`、100 条 motion-planning 示范和训练 `seed=1`，执行 30,000 次迭代。TensorBoard 最后一条训练标量位于 29,900 次迭代；周期评估每次包含 100 个 episode。
 
-| 评估口径 | 迭代/checkpoint | Episodes | `success_once` | `success_at_end` | 平均回报 |
+| 训练期间评估 | 迭代 | Episodes | `success_once` | `success_at_end` | 平均回报 |
 |---|---:|---:|---:|---:|---:|
 | 最佳周期评估 | 10,000 | 100 | 75% | 68% | 20.79 |
 | 最后周期评估 | 25,000 | 100 | 68% | 60% | 16.60 |
-| 已有视频批次 | `best_eval_success_at_end.pt` | 50 | 100% | 100% | 未记录 |
-| Fresh CPU 验证 | `best_eval_success_at_end.pt` | 10 | 70% | 60% | 20.10 |
 
-已有视频批次的 50 个末帧叠加指标均显示成功，但当时没有保留控制台设备信息。仓库整理时重新执行的 CPU 评估结果较低，表明闭环轨迹可能对推理设备造成的数值差异敏感。这两批结果均与训练期间的 100-episode 周期评估分开记录。
+同一个 `best_eval_success_at_end.pt` checkpoint 随后在评估 seed 0、1、2 上各运行 100 个 episode：
+
+| Checkpoint 评估 seed | Episodes | `success_once` | `success_at_end` | 平均回报 |
+|---:|---:|---:|---:|---:|
+| 0 | 100 | 76% | 69% | 20.72 |
+| 1 | 100 | 78% | 71% | 21.00 |
+| 2 | 100 | 72% | 64% | 20.01 |
+| 均值 ± 样本标准差 | 100/seed | 75.33% ± 3.06 pp | 68.00% ± 3.61 pp | 20.58 ± 0.51 |
+
+这里的 seed 控制评估环境与随机数，不代表训练了三个模型。训练周期评估与 checkpoint 独立评估来自不同执行阶段，因此分别记录，不合并为一个成功率。
 
 ![ACT training and evaluation curves](results/curves/training_curves.png)
 
-下图是独立 checkpoint 评估的 50 个回合末帧，画面叠加指标均显示成功：
+![Seeded checkpoint evaluation](results/curves/checkpoint_seed_comparison.png)
 
-![Final frames from fifty checkpoint evaluation episodes](assets/images/checkpoint-evaluation-final-frames.jpg)
+下图从每个 seed 各选一个成功和失败回合，仅用于展示行为，不参与成功率计算：
 
-代表视频：[0](assets/videos/best_eval_success_at_end/0.mp4) · [1](assets/videos/best_eval_success_at_end/1.mp4) · [2](assets/videos/best_eval_success_at_end/2.mp4) · [3](assets/videos/best_eval_success_at_end/3.mp4) · [4](assets/videos/best_eval_success_at_end/4.mp4) · [完整目录](assets/videos/best_eval_success_at_end/)
+![Seeded success and failure examples](assets/images/checkpoint-evaluation-seeded-examples.jpg)
+
+代表视频：[seed 0](assets/videos/best_eval_success_at_end/seed-0/) · [seed 1](assets/videos/best_eval_success_at_end/seed-1/) · [seed 2](assets/videos/best_eval_success_at_end/seed-2/) · [完整目录](assets/videos/best_eval_success_at_end/)
 
 完整标量数据见 [`results/metrics.csv`](results/metrics.csv)，实验分析见 [`report/experiment_report.md`](report/experiment_report.md)。
 
@@ -86,8 +96,10 @@ SEED=2 NUM_DEMOS=50 TOTAL_ITERS=30000 \
 ### 4. 从 checkpoint 独立评估并生成视频
 
 ```bash
-scripts/act_pickcube/evaluate_checkpoint.sh \
-  examples/baselines/act/runs/act-PickCube-v1-state-100demos-seed1/checkpoints/best_eval_success_at_end.pt
+for seed in 0 1 2; do
+  SEED="$seed" scripts/act_pickcube/evaluate_checkpoint.sh \
+    examples/baselines/act/runs/act-PickCube-v1-state-100demos/checkpoints/best_eval_success_at_end.pt
+done
 ```
 
 也可以直接使用 Python 入口：
@@ -95,12 +107,13 @@ scripts/act_pickcube/evaluate_checkpoint.sh \
 ```bash
 cd examples/baselines/act
 python evaluate_checkpoint.py \
-  --checkpoint runs/act-PickCube-v1-state-100demos-seed1/checkpoints/best_eval_success_at_end.pt \
-  --num-eval-episodes 50 \
-  --num-eval-envs 1
+  --checkpoint runs/act-PickCube-v1-state-100demos/checkpoints/best_eval_success_at_end.pt \
+  --num-eval-episodes 100 \
+  --num-eval-envs 1 \
+  --seed 0
 ```
 
-默认视频目录为 `runs/<experiment>/videos/<checkpoint-name>/`。`num_queries`、Transformer 层数、隐藏维度等模型结构参数必须与生成 checkpoint 时的训练配置一致。
+默认视频和 `metrics.json` 目录为 `runs/<experiment>/videos/<checkpoint-name>/seed-<seed>/`。重复正式对比时分别使用 `--seed 0`、`--seed 1` 和 `--seed 2`。`num_queries`、Transformer 层数、隐藏维度等模型结构参数必须与生成 checkpoint 时的训练配置一致。
 
 ## 仓库结构
 
@@ -120,20 +133,21 @@ docs/experiment-protocol.md  对照实验与评估规范
 - 修复 Gymnasium 新版 vector environment 在 CPU 评估中的 autoreset 行为，使用 `SAME_STEP` 保留 `final_info`。
 - 让评估代码同时支持 NumPy 与 Tensor episode metrics，并过滤 Gymnasium 自动生成的 `_metric` 掩码字段。
 - 新增 EMA checkpoint 加载与独立闭环评估入口，支持 CPU/GPU、随机种子、并行环境和视频目录配置。
-- 为以上行为补充 7 个回归测试。
+- 将评估 seed 传入环境首次 reset，并把每次评估的均值、样本数和 checkpoint 来源保存为 JSON。
+- 为以上行为补充 9 个回归测试。
 - 提供从数据下载到训练、评估、结果展示的可复现项目结构。
 
 ## 局限性
 
-- 当前定量结果只有一个随机种子，不能据此得出稳定的均值和标准差。
-- 已有 50/50 视频批次没有保留设备信息；fresh CPU 复查只有 70%/60%，需要在固定设备上重复验证。
-- 精选的 50 回合视频批次没有失败案例；fresh CPU 复查观察到失败，但临时验证视频不作为精选媒体提交。
+- 当前只有一个训练 seed。三组 checkpoint 评估 seed 描述环境初始条件波动，不能替代多个独立训练 seed。
+- `metrics.json` 尚未记录推理设备和硬件型号，不能据此比较 CPU/CUDA 数值差异。
+- 精选视频只覆盖六个回合，不能替代每个 seed 的 100-episode 统计。
 - 当前策略使用环境 state，而不是 RGB 图像，尚未验证视觉泛化与 sim-to-real。
 - checkpoint 和原始数据不进入 Git。需要先运行训练脚本，才能复现 checkpoint 评估。
 
 ## 后续路线
 
-下一步优先完成 `seed=0/1/2` 的 100-episode 对照评估，再升级到单摄像头 RGB 输入和视觉域随机化。实体机械臂与语言条件控制保留为后续阶段，详见 [`docs/project-roadmap.md`](docs/project-roadmap.md)。
+下一步优先补齐多个独立训练 seed，再升级到单摄像头 RGB 输入和视觉域随机化。实体机械臂与语言条件控制保留为后续阶段，详见 [`docs/project-roadmap.md`](docs/project-roadmap.md)。
 
 ## 上游项目、引用与许可证
 

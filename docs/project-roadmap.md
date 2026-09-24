@@ -7,11 +7,11 @@
 | 阶段 | 状态 | 验收成果 |
 |---|---|---|
 | ManiSkill PickCube state ACT | 已完成 | 100 demos、30,000 iterations、100-episode 周期评估 |
-| Checkpoint 独立评估 | 已完成 | EMA policy 加载、50 个闭环回合、50 段视频 |
+| Checkpoint 独立评估 | 已完成 | EMA policy 加载、3 个评估 seed、每个 seed 100 回合 |
 | 仓库复现与实验报告 | 已完成 | 环境、脚本、指标、曲线、报告和测试 |
 | LeRobot 公开数据 ACT | 计划中 | 数据字段检查、1,000-step smoke test、训练记录 |
 | PickCube RGB ACT | 计划中 | 单摄像头 RGB 数据、训练曲线、闭环成功率 |
-| 多 seed 与数据量对照 | 计划中 | seed 0/1/2，10/50/100 demos，均值与标准差 |
+| 多 seed 与数据量对照 | 进行中 | 评估 seed 对照已完成；独立训练 seed 与 10/50/100 demos 待完成 |
 | 视觉域随机化 | 计划中 | 未见颜色、位置、纹理和光照上的泛化评估 |
 | 实体机械臂迁移 | 计划中 | 真实示范、至少 30 次测试、安全与延迟记录 |
 | 语言条件控制/VLA | 远期计划 | 多任务指令数据与轻量 VLA 对照 |
@@ -42,7 +42,7 @@ PickCube motion-planning demos
  checkpoint evaluation + videos
 ```
 
-当前结果只有 `seed=1`，下一步应保持其余参数不变，补齐 `seed=0` 和 `seed=2`。
+训练目前只有 `seed=1`。同一个 best checkpoint 已完成评估 seed 0、1、2 各 100 回合的对照；下一步应保持其余参数不变，补齐独立训练 seed 0 和 seed 2。
 
 ## 第三阶段：RGB 视觉输入
 

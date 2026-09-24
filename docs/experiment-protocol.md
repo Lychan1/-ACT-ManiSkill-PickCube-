@@ -51,12 +51,12 @@ act-PickCube-v1-state-100demos-seed1
 
 训练周期评估与 checkpoint 视频评估必须分开记录：
 
-- `training_periodic_eval`：用于正式比较，主结果为 100 episodes。
-- `checkpoint_video_eval`：用于复查 checkpoint 和生成案例视频，不替代正式比较。
+- `training_periodic_eval`：训练过程中执行，用于观察学习进展和选择 checkpoint。
+- `checkpoint_video_eval`：从指定 checkpoint 独立执行；达到每个 seed 100 episodes 且保存 JSON 时可用于正式 checkpoint 对比。
 
-还必须记录推理设备（CPU/CUDA）。闭环动作序列可能放大不同设备上的数值差异，跨设备结果不得合并统计。
+精选视频只用于展示成功和失败模式，不能从精选数量反推成功率。还必须记录推理设备（CPU/CUDA）。闭环动作序列可能放大不同设备上的数值差异，跨设备结果不得合并统计。
 
-多个 seed 的正式结果报告均值和样本标准差，不只报告最好一次。
+多个 seed 的正式结果报告均值和样本标准差，不只报告最好一次。报告必须注明 seed 属于训练 seed 还是评估环境 seed；后者不能替代多个独立训练模型。
 
 ## 失败分类
 

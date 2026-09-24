@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import tyro
 
-from act.checkpoint import default_video_dir, load_agent
+from act.checkpoint import default_video_dir, load_agent, save_metrics
 from act.evaluate import evaluate
 from act.make_env import make_eval_envs
 from train import Agent
@@ -24,7 +24,7 @@ class Args:
     num_eval_episodes: int = 10
     num_eval_envs: int = 1
     video_dir: Optional[Path] = None
-    """Output directory. Defaults to RUN_DIR/videos/CHECKPOINT_NAME."""
+    """Output directory. Defaults to RUN_DIR/videos/CHECKPOINT_NAME/seed-SEED."""
     seed: int = 1
     cuda: bool = True
     torch_deterministic: bool = True
@@ -50,7 +50,7 @@ def main(args: Args):
     video_dir = (
         args.video_dir.expanduser().resolve()
         if args.video_dir is not None
-        else default_video_dir(checkpoint_path)
+        else default_video_dir(checkpoint_path) / f"seed-{args.seed}"
     )
     video_dir.mkdir(parents=True, exist_ok=True)
 
@@ -90,7 +90,11 @@ def main(args: Args):
             "sim_backend": args.sim_backend,
         }
         metrics = evaluate(
-            args.num_eval_episodes, agent, envs, eval_kwargs
+            args.num_eval_episodes,
+            agent,
+            envs,
+            eval_kwargs,
+            seed=args.seed,
         )
     finally:
         envs.close()
@@ -99,6 +103,15 @@ def main(args: Args):
     print(f"Device: {device}")
     for name, values in metrics.items():
         print(f"{name}: {np.mean(values):.4f}")
+
+    metrics_path = video_dir / "metrics.json"
+    save_metrics(
+        metrics_path,
+        metrics,
+        checkpoint_path=checkpoint_path,
+        seed=args.seed,
+    )
+    print(f"Metrics: {metrics_path}")
 
     videos = sorted(video_dir.glob("*.mp4"))
     print(f"Videos: {video_dir}")

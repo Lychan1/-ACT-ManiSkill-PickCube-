@@ -43,13 +43,16 @@ MP4 videos:
 
 ```bash
 python evaluate_checkpoint.py \
-  --checkpoint runs/act-PickCube-v1-state-100demos-seed1/checkpoints/best_eval_success_at_end.pt \
-  --num-eval-episodes 50 \
-  --num-eval-envs 1
+  --checkpoint runs/act-PickCube-v1-state-100demos/checkpoints/best_eval_success_at_end.pt \
+  --num-eval-episodes 100 \
+  --num-eval-envs 1 \
+  --seed 0
 ```
 
 Videos default to
-`runs/<experiment>/videos/<checkpoint-name>/`. The model architecture flags,
+`runs/<experiment>/videos/<checkpoint-name>/seed-<seed>/`; the same directory
+also receives `metrics.json`. Repeat formal evaluation with seeds 0, 1, and 2.
+The model architecture flags,
 including `--num-queries`, `--enc-layers`, `--dec-layers`, and
 `--hidden-dim`, must match the values used to create the checkpoint.
 

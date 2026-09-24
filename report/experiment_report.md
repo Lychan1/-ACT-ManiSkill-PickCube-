@@ -2,7 +2,7 @@
 
 ## 摘要
 
-本实验使用 ManiSkill `PickCube-v1` 的 100 条 motion-planning 示范训练状态输入 ACT 策略，并在闭环环境中周期评估。训练执行 30,000 次迭代，100-episode 周期评估的最佳 `success_once` 为 75%，最佳 `success_at_end` 为 68%。此外，新增 checkpoint 独立评估入口并保存视频；已有 50 段视频的末帧叠加指标均显示成功，但 fresh CPU 复查得到 70% `success_once` 和 60% `success_at_end`，提示结果存在设备敏感性。
+本实验使用 ManiSkill `PickCube-v1` 的 100 条 motion-planning 示范训练状态输入 ACT 策略，并在闭环环境中周期评估。训练执行 30,000 次迭代，100-episode 周期评估的最佳 `success_once` 为 75%，最佳 `success_at_end` 为 68%。对同一个 best checkpoint 使用评估 seed 0、1、2 各运行 100 个 episode，跨 seed 结果为 `success_once=75.33% ± 3.06 pp`、`success_at_end=68.00% ± 3.61 pp`、平均回报 `20.58 ± 0.51`（均值 ± 样本标准差）。
 
 ## 实验设置
 
@@ -17,6 +17,7 @@
 | Seed | 1 |
 | 最大 episode 长度 | 100 |
 | 周期评估规模 | 100 episodes |
+| Checkpoint 评估规模 | 3 seeds x 100 episodes |
 | 软件 | Python 3.11.16、ManiSkill 3.0.1、Gymnasium 1.3.0、PyTorch 2.10.0+cu128 |
 | 硬件 | 原始日志未记录，不能可靠补写 |
 
@@ -39,22 +40,31 @@ TensorBoard 共记录 300 个 loss 点，最后一步为 29,900。记录的累�
 
 ## Checkpoint 视频评估
 
-`best_eval_success_at_end.pt` 通过新增的独立入口加载 EMA policy。已有视频目录包含 50 个 episode，其末帧叠加指标均为 `success_once=1`、`success_at_end=1`；原评估的控制台设备输出没有保留。
+`best_eval_success_at_end.pt` 通过独立入口加载 EMA policy。评估入口将 seed 传入环境首次 reset，并在各 seed 目录保存 100 段视频和 `metrics.json`。
 
-仓库整理期间，在 CPU 上重新运行相同 checkpoint 的 10 个 episode，得到 `success_once=70%`、`success_at_end=60%`、平均回报 20.10。该差异说明动作序列闭环执行可能放大 CPU/CUDA 推理的微小数值差异。后续应在固定硬件、固定设备和多个 seed 上重复评估。
+| 评估 seed | Episodes | `success_once` | `success_at_end` | 平均回报 | 平均 reward |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 100 | 76% | 69% | 20.72 | 0.2072 |
+| 1 | 100 | 78% | 71% | 21.00 | 0.2100 |
+| 2 | 100 | 72% | 64% | 20.01 | 0.2001 |
+| 均值 ± 样本标准差 | 100/seed | 75.33% ± 3.06 pp | 68.00% ± 3.61 pp | 20.58 ± 0.51 | 0.2058 ± 0.0051 |
+
+![Seeded checkpoint evaluation](../results/curves/checkpoint_seed_comparison.png)
+
+三组结果来自同一个训练 seed=1 的 checkpoint。评估 seed 控制环境初始条件和随机数，不能解释为三个独立模型的训练稳定性。仓库只提交每个 seed 各一个成功和失败视频作为可视化案例；完整 300 段视频保留在被忽略的 `runs/` 目录中。
 
 ## 工程改动
 
 - CPU vector evaluation 使用 Gymnasium `SAME_STEP` autoreset，确保 episode 截断时保留 `final_info`。
 - 指标收集兼容 NumPy/Tensor，并忽略 Gymnasium `_metric` 掩码。
 - checkpoint 加载器明确使用 EMA 权重，并在 checkpoint 缺少 `ema_agent` 时失败。
-- 独立评估入口支持设备、seed、episode 数、并行环境、视频目录和 ACT 结构参数。
+- 独立评估入口支持设备、seed、episode 数、并行环境、视频目录和 ACT 结构参数，并持久化 JSON 指标。
 
 ## 局限性与后续工作
 
-- 只有一个 seed，尚不能计算跨 seed 均值与标准差。
+- 只有一个训练 seed；当前标准差仅描述评估 seed 之间的变化。
 - 没有记录硬件型号和峰值显存。
-- 已有 50 个视频回合没有失败案例，但 fresh CPU 评估出现失败；本次临时验证视频不作为精选媒体提交。
-- 原 50 回合视频批次未保存设备与控制台指标，证据只能追溯到视频叠加信息。
+- 当前 `metrics.json` 未记录推理设备，不能用于 CPU/CUDA 对照。
+- 精选视频是六个定性案例，不能替代完整评估统计。
 - 策略依赖环境 state，尚未覆盖 RGB 泛化和 sim-to-real。
-- 下一步先运行 seed 0 和 seed 2，再开展 10/50/100 demos 与 state/RGB 对照。
+- 下一步补齐独立训练 seed，再开展 10/50/100 demos 与 state/RGB 对照。

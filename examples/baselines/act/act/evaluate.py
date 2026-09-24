@@ -5,7 +5,7 @@ import torch
 
 from mani_skill.utils import common
 
-def evaluate(n: int, agent, eval_envs, eval_kwargs):
+def evaluate(n: int, agent, eval_envs, eval_kwargs, seed=None):
     stats, num_queries, temporal_agg, max_timesteps, device, sim_backend = eval_kwargs.values()
 
     use_visual_obs = isinstance(eval_envs.single_observation_space.sample(), dict)
@@ -30,7 +30,10 @@ def evaluate(n: int, agent, eval_envs, eval_kwargs):
     agent.eval()
     with torch.no_grad():
         eval_metrics = defaultdict(list)
-        obs, info = eval_envs.reset()
+        if seed is None:
+            obs, info = eval_envs.reset()
+        else:
+            obs, info = eval_envs.reset(seed=seed)
         ts, eps_count = 0, 0
         while eps_count < n:
             # pre-process obs
