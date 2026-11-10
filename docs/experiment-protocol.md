@@ -73,3 +73,19 @@ act-PickCube-v1-state-100demos-seed1
 ## 产物管理
 
 原始数据、checkpoint、完整 TensorBoard 日志和大视频保留在被 Git 忽略的运行目录。仓库只提交 CSV 摘要、曲线、精选视频和报告，并确保每个摘要都记录来源实验名。
+
+## 实验矩阵与状态
+
+实验矩阵位于 `experiments/act_matrix.json`，可通过以下命令预览运行计划：
+
+```bash
+PYTHON_BIN=/path/to/python scripts/act_pickcube/run_matrix.sh --dry-run
+```
+
+实际运行矩阵会按配置顺序串行执行，并将结果目录命名为 `act-PickCube-v1-<observation>-<num_demos>demos-seed<seed>`。汇总与曲线生成使用：
+
+```bash
+PYTHON_BIN=/path/to/python scripts/act_pickcube/summarize_matrix.sh
+```
+
+汇总状态分为 `complete` 和 `missing_metrics`。后者表示没有找到正式 checkpoint 指标，可能是尚未运行、运行中断或产物未归档；它不代表模型失败。训练 seed 来自实验配置，评估 seed 来自 `metrics.json`，两者必须分开记录。

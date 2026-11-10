@@ -13,6 +13,10 @@ Git.
   state and RGB checkpoint evaluations.
 - `curves/training_curves.png`: state training curves.
 - `curves/checkpoint_seed_comparison.png`: state checkpoint evaluation seeds.
+- `experiment_matrix.csv`: configured State/RGB experiments and artifact status.
+- `curves/experiment_matrix_success.png`: completed checkpoint comparison; it
+  becomes a demonstration-count trend after multiple data sizes complete.
+- `curves/experiment_matrix_status.png`: complete versus missing matrix entries.
 
 The primary RGB run is `act-PickCube-v1-rgb-100demos-seed1`. TensorBoard
 contains 301 loss points through step 30,000 and seven 100-episode periodic
@@ -29,3 +33,7 @@ separate. Evaluation seeds describe repeated environments for one trained
 checkpoint, not independent model-training seeds. The state/RGB comparison is
 also not a strict modality ablation because the completed configurations differ
 in model and training details.
+
+The matrix summary deliberately preserves `missing_metrics` rows for experiments
+that have not produced a formal checkpoint evaluation. These rows are
+reproducibility metadata, not experimental failures.

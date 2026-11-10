@@ -103,6 +103,18 @@ done
 
 State 基线仍可通过 `replay_state.sh`、`train_smoke.sh`、`train_state.sh` 和 `evaluate_checkpoint.sh` 复现。
 
+### 5. 实验矩阵
+
+仓库提供 State/RGB、10/50/100 demos 和训练 seed 0/1/2 的统一实验矩阵。先预览命令，再按可用算力串行执行：
+
+```bash
+scripts/act_pickcube/run_matrix.sh --dry-run
+scripts/act_pickcube/run_matrix.sh
+scripts/act_pickcube/summarize_matrix.sh
+```
+
+汇总结果写入 [`results/experiment_matrix.csv`](results/experiment_matrix.csv)。`complete` 表示已找到正式 checkpoint 评估指标，`missing_metrics` 表示实验尚未运行或结果尚未归档，不代表策略失败。
+
 ## 仓库结构
 
 ```text
@@ -110,6 +122,7 @@ environment/                 ManiSkill 与 LeRobot 独立环境
 scripts/act_pickcube/        下载、RGB/state 回放、训练和评估入口
 examples/baselines/act/      ACT baseline 与 checkpoint 评估代码
 results/                     TensorBoard/JSON 派生指标与曲线
+experiments/                 State/RGB 实验矩阵配置
 assets/                      精选评估视频与末帧总览
 report/                      实验报告
 docs/project-roadmap.md      项目路线
@@ -123,7 +136,7 @@ docs/experiment-protocol.md  对照实验与评估规范
 - 修复 Gymnasium vector environment 的 CPU 评估兼容性，使用 `SAME_STEP` autoreset 保留 `final_info`。
 - 让指标收集兼容 NumPy/Tensor，并过滤 Gymnasium 自动生成的 `_metric` 掩码字段。
 - 将评估 seed 传入首次 reset，并将均值、样本数和 checkpoint 来源持久化为 JSON。
-- 提供 RGB/state 数据回放、训练、评估脚本和 15 个回归测试。
+- 提供 RGB/state 数据回放、训练、评估、实验矩阵脚本和 24 个回归测试。
 
 ## 局限性
 

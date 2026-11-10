@@ -77,3 +77,20 @@ TensorBoard 共记录 301 个 RGB loss 点，范围为 step 0 到 30,000。Loss 
 - 没有记录 GPU 型号、峰值显存、推理设备或逐回合延迟。
 - 尚未完成严格控制变量的 RGB/state 消融。
 - 尚未测试视觉域随机化、未见相机条件和实体机械臂迁移。
+
+## 实验矩阵扩展状态
+
+仓库新增了统一实验矩阵 `experiments/act_matrix.json`，覆盖 State/RGB 两种观测、10/50/100 条示范和训练 seed 0/1/2。矩阵运行入口为 `scripts/act_pickcube/run_matrix.sh`，结果汇总入口为 `scripts/act_pickcube/summarize_matrix.sh`。
+
+当前汇总文件为 `results/experiment_matrix.csv`。其中 `complete` 表示已经找到正式 checkpoint 评估指标，`missing_metrics` 表示对应实验尚未产生正式指标或结果尚未归档。当前已归档的 State 100 demos seed 1 和 RGB 100 demos seed 1 结果保留；其余矩阵项不会被补填为假结果。
+
+新增汇总器会分别记录训练 seed 和评估 seed，并保留指标文件路径。已有长表 `results/metrics.csv` 不被覆盖，新增矩阵状态单独写入 `results/experiment_matrix.csv`。由于当前仅有一个 State 训练 seed 和一个 RGB 训练 seed，现阶段不能把评估环境 seed 的标准差解释为独立训练稳定性。
+
+## 复现与后续执行
+
+```bash
+PYTHON_BIN=/path/to/python scripts/act_pickcube/run_matrix.sh --dry-run
+PYTHON_BIN=/path/to/python scripts/act_pickcube/summarize_matrix.sh
+```
+
+有限 GPU 环境建议先完成 10/50 demos 的小规模验证，再顺序补齐 100 demos 的训练 seed 0 和 seed 2。正式结果必须完成 checkpoint 评估并保存 `metrics.json` 后才能进入主结果表。

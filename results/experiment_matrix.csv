@@ -1,0 +1,11 @@
+experiment,observation,num_demos,train_seed,eval_seed,status,success_once,success_at_end,mean_return,episode_count,loss_start,loss_end,metrics_path,checkpoint_path
+act-PickCube-v1-state-10demos-seed1,state,10,1,,missing_metrics,,,,,,,,
+act-PickCube-v1-state-50demos-seed1,state,50,1,,missing_metrics,,,,,,,,
+act-PickCube-v1-state-100demos-seed0,state,100,0,,missing_metrics,,,,,,,,
+act-PickCube-v1-state-100demos-seed1,state,100,1,1,complete,0.78,0.71,21.0,100,68.1103515625,0.01063663512468338,act-PickCube-v1-state-100demos/videos/best_eval_success_at_end/seed-1/metrics.json,act-PickCube-v1-state-100demos-seed1/checkpoints/best_eval_success_at_end.pt
+act-PickCube-v1-state-100demos-seed2,state,100,2,,missing_metrics,,,,,,,,
+act-PickCube-v1-rgb-10demos-seed1,rgb,10,1,,missing_metrics,,,,,,,,
+act-PickCube-v1-rgb-50demos-seed1,rgb,50,1,,missing_metrics,,,,,,,,
+act-PickCube-v1-rgb-100demos-seed0,rgb,100,0,,missing_metrics,,,,,,,,
+act-PickCube-v1-rgb-100demos-seed1,rgb,100,1,1,complete,0.91,0.89,28.73,100,77.85551452636719,0.012728570960462093,act-PickCube-v1-rgb-100demos-seed1/videos/best_eval_success_at_end/seed-1/metrics.json,act-PickCube-v1-rgb-100demos-seed1/checkpoints/best_eval_success_at_end.pt
+act-PickCube-v1-rgb-100demos-seed2,rgb,100,2,,missing_metrics,,,,,,,,

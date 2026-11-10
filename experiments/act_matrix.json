@@ -1,0 +1,14 @@
+{
+  "experiments": [
+    {"observation": "state", "num_demos": 10, "train_seed": 1, "total_iters": 30000},
+    {"observation": "state", "num_demos": 50, "train_seed": 1, "total_iters": 30000},
+    {"observation": "state", "num_demos": 100, "train_seed": 0, "total_iters": 30000},
+    {"observation": "state", "num_demos": 100, "train_seed": 1, "total_iters": 30000},
+    {"observation": "state", "num_demos": 100, "train_seed": 2, "total_iters": 30000},
+    {"observation": "rgb", "num_demos": 10, "train_seed": 1, "total_iters": 30000},
+    {"observation": "rgb", "num_demos": 50, "train_seed": 1, "total_iters": 30000},
+    {"observation": "rgb", "num_demos": 100, "train_seed": 0, "total_iters": 30000},
+    {"observation": "rgb", "num_demos": 100, "train_seed": 1, "total_iters": 30000},
+    {"observation": "rgb", "num_demos": 100, "train_seed": 2, "total_iters": 30000}
+  ]
+}

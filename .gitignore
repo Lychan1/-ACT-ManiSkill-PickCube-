@@ -28,6 +28,7 @@ dist/
 
 # project-relevant
 imgui.ini
+/.cache/
 
 # directories that should be ignored in general
 # but can be excluded explicitly

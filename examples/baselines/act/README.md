@@ -71,6 +71,27 @@ python evaluate_rgb_checkpoint.py \
 Run the command with seeds 0, 1, and 2. Each seed writes to its own video and
 metrics directory, so the three evaluations do not overwrite one another.
 
+## Experiment matrix
+
+The reproducible State/RGB matrix is stored in `experiments/act_matrix.json`.
+Preview commands without starting training:
+
+```bash
+PYTHON_BIN=/path/to/python scripts/act_pickcube/run_matrix.sh --dry-run
+```
+
+Run the matrix sequentially when compute is available, then summarize all
+available checkpoint metrics:
+
+```bash
+PYTHON_BIN=/path/to/python scripts/act_pickcube/run_matrix.sh
+PYTHON_BIN=/path/to/python scripts/act_pickcube/summarize_matrix.sh
+```
+
+The summary writes `results/experiment_matrix.csv`. `complete` rows contain
+formal metrics; `missing_metrics` rows remain explicit so smoke tests and
+unrun experiments are not mistaken for failed policies.
+
 Recent Gymnasium releases return NumPy episode metrics and companion mask keys
 from CPU vector environments. This fork uses same-step autoreset, accepts both
 NumPy and Tensor metrics, and ignores mask keys prefixed with `_`.
@@ -90,9 +111,10 @@ seed 1, batch size 4, 30,001 total iterations, evaluation every 5,000 steps,
 and 100 evaluation episodes. State wrappers remain available as
 `replay_state.sh`, `train_state.sh`, and `evaluate_checkpoint.sh`.
 
-The repository regression suite currently contains 15 ACT baseline tests,
-including RGB policy configuration, checkpoint loading, wrapper defaults,
-video paths, Gymnasium metrics, and CLI execution.
+The repository regression suite currently contains 24 ACT project tests across
+the baseline and experiment-matrix modules, including RGB policy configuration,
+checkpoint loading, wrapper defaults, portable result paths, Gymnasium metrics,
+and CLI execution.
 
 ## Citation
 

@@ -12,6 +12,7 @@
 | LeRobot 公开数据 ACT | 计划中 | 数据字段检查、1,000-step smoke test、训练记录 |
 | PickCube RGB ACT | 已完成 | RGB 数据、30,000 iterations、3 个评估 seed × 100 回合 |
 | 多 seed 与数据量对照 | 进行中 | 评估 seed 对照已完成；独立训练 seed 与 10/50/100 demos 待完成 |
+| 实验矩阵与结果汇总 | 已完成基础设施 | 统一命名、矩阵配置、dry-run、CSV 汇总和状态/结果图 |
 | 视觉域随机化 | 计划中 | 未见颜色、位置、纹理和光照上的泛化评估 |
 | 实体机械臂迁移 | 计划中 | 真实示范、至少 30 次测试、安全与延迟记录 |
 | 语言条件控制/VLA | 远期计划 | 多任务指令数据与轻量 VLA 对照 |
@@ -64,6 +65,10 @@ PickCube motion-planning demos
 3. 随机种子：0、1、2。
 
 每组核心配置至少评估 50 个 episode；主结果使用 100 个 episode。报告成功率均值、标准差、平均回报、训练时间、推理速度和显存占用。
+
+当前仓库已提供 `experiments/act_matrix.json`、矩阵 dry-run 和结果汇总入口。新增矩阵结果写入 `results/experiment_matrix.csv`，与历史长表 `results/metrics.csv` 分开保存。`complete` 表示发现正式 checkpoint 评估指标；`missing_metrics` 表示实验尚未运行或结果尚未归档，不能当作失败率。
+
+有限 GPU 下先运行 smoke test，再运行 10/50 demos 对照，最后补充 100 demos 的独立训练 seed。未实际完成的配置必须保留为缺失状态，不在实验报告中补填数值。
 
 ## 第五阶段：视觉泛化
 
